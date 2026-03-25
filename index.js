@@ -76,8 +76,29 @@ io.on("connection", (socket) => {
     if (room.players.length < 2) return
 
     room.status = "playing"
+    room.currentTurnPlayerId = room.players[Math.floor(Math.random() * room.players.length)].playerId
+    room.turnNumber = 1
+    console.log(room)
     io.to(roomId).emit("room-update", room)
     io.to(roomId).emit("game-started")
+  })
+
+  // Passer au joueur suivant
+    socket.on("next-turn", ({ roomId, playerId }) => {
+    const room = rooms[roomId]
+    if (!room) return
+  
+    // vérification : seul le joueur courant peut passer son tour
+    if (room.currentTurnPlayerId !== playerId) return
+  
+    // calcul du joueur suivant
+    const currentIndex = room.players.findIndex(p => p.playerId === playerId)
+    const nextIndex = (currentIndex + 1) % room.players.length
+  
+    room.currentTurnPlayerId = room.players[nextIndex].playerId
+    room.turnNumber += 1
+  
+    io.to(roomId).emit("room-update", { ...room }) // update en live
   })
 
   // Kick un joueur (seul admin)
