@@ -22,6 +22,28 @@ const io = new Server(server, {
 // Stockage simple en mémoire
 const rooms = {}
 
+function updateScore(room, playersIds, points) {
+    playersIds.forEach((id) => {
+      const player = room.players.find(p => p.playerId === id)
+      if (player) {
+        player.score += points
+      }
+    })
+}
+
+function nextTurn(room) {
+    const currentIndex = room.players.findIndex(p => p.playerId === room.currentTurnPlayerId)
+    const nextIndex = (currentIndex + 1) % room.players.length
+  
+    room.currentTurnPlayerId = room.players[nextIndex].playerId
+    
+    room.turnNumber += 1
+
+    room.secretWord=""
+    room.secretClue=0
+    room.clueGived=[]
+}
+
 io.on("connection", (socket) => {
   console.log("Connected:", socket.id)
 
@@ -78,7 +100,6 @@ io.on("connection", (socket) => {
     room.status = "playing"
     room.currentTurnPlayerId = room.players[Math.floor(Math.random() * room.players.length)].playerId
     room.turnNumber = 1
-    console.log(room)
     io.to(roomId).emit("room-update", room)
     io.to(roomId).emit("game-started")
   })
@@ -91,26 +112,83 @@ io.on("connection", (socket) => {
 
     room.secretWord=secretWord
     room.secretClue=secretClue
+    room.cluesGived=[{}]
     io.to(roomId).emit("room-update", room)
   })
 
-  // Passer au joueur suivant
-    socket.on("next-turn", ({ roomId, playerId }) => {
+  socket.on("giving-clue", ({roomId, playerId, clueGived}) => {
     const room = rooms[roomId]
     if (!room) return
-  
-    // vérification : seul le joueur courant peut passer son tour
     if (room.currentTurnPlayerId !== playerId) return
-  
-    // calcul du joueur suivant
-    const currentIndex = room.players.findIndex(p => p.playerId === playerId)
-    const nextIndex = (currentIndex + 1) % room.players.length
-  
-    room.currentTurnPlayerId = room.players[nextIndex].playerId
-    room.turnNumber += 1
-  
-    io.to(roomId).emit("room-update", { ...room }) // update en live
+
+    room.cluesGived[room.cluesGived.length - 1] = {clue: clueGived}
+    console.log(room)
+    io.to(roomId).emit("room-update", room)
   })
+
+  socket.on("guessing-word", ({roomId, playerId, guess}) => {
+    const room = rooms[roomId]
+    if (!room) return
+    // if (room.currentTurnPlayerId === playerId) return
+
+    room.cluesGived[room.cluesGived.length - 1][playerId] = guess
+
+    if(guess.toLocaleLowerCase() === room.secretWord.toLocaleLowerCase()){
+        const playersId = [playerId]
+        if(room.cluesGived.length === room.secretClue){
+            playersId.push(room.currentTurnPlayerId)
+        }
+        updateScore(room,playersId,room.cluesGived.length)
+        
+        io.to(roomId).emit("word-found", {
+            winner: playersId,
+            points: room.cluesGived.length
+        })
+        nextTurn(room)
+    }
+    else {
+        //verifier si tout le monde a écrit
+        if(Object.keys(room.cluesGived[room.cluesGived.length - 1]).length === room.players.length){
+            console.log("cas tout le monde a deviné ")
+            //cas où fin de manche 
+            if(room.secretClue === room.cluesGived.length){
+                io.to(roomId).emit("word-not-found")
+                nextTurn(room)
+            }
+            else {
+                console.log("pas fin de manche")
+                //cas pas fin de manche 
+                room.cluesGived.push({})
+            }
+        }
+    }
+
+    io.to(roomId).emit("room-update", room)
+
+  })
+
+  // Passer au joueur suivant
+//     socket.on("next-turn", ({ roomId }) => {
+//         console.log("JOUEUR SUIVANT")
+//     const room = rooms[roomId]
+//     if (!room) return
+  
+//     // calcul du joueur suivant
+//     const currentIndex = room.players.findIndex(p => p.playerId === room.currentTurnPlayerId)
+//     const nextIndex = (currentIndex + 1) % room.players.length
+  
+//     console.log("joueur précédent : ", room.currentTurnPlayerId)
+//     room.currentTurnPlayerId = room.players[nextIndex].playerId
+    
+//     console.log("joueur actuel : ", room.currentTurnPlayerId)
+//     room.turnNumber += 1
+
+//     room.secretWord=""
+//     room.secretClue=0
+//     room.clueGived=[]
+  
+//     io.to(roomId).emit("room-update", room ) // update en live
+//   })
 
   // Kick un joueur (seul admin)
   socket.on("kick-player", ({ roomId, playerId, targetPlayerId }) => {
@@ -129,18 +207,33 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("room-update", room)
   })
 
-  socket.on("update-score", ({ roomId, playerId, points }) => {
-    const room = rooms[roomId]
-    if (!room) return
+//   socket.on("update-score", ({ roomId, playersId, points }) => {
+//     console.log("essai score")
+//     const room = rooms[roomId]
+//     if (!room) return
   
-    const player = room.players.find(p => p.playerId === playerId)
-    if (!player) return
+//     console.log("en train d'update score")
+//     // const player = room.players.find(p => p.playerId === playerId)
+//     // if (!player) return
+
   
-    player.score += points
+//     // player.score += points
+
+
+//     room.players.map((player) => {
+//         const match = playersId.find(pId=> pId == player.playerId)
+//         if(match){
+//             player.score += points
+//         }
+//         return player
+//     })
+
+//     console.log("SCORE")
+//     console.log(room)
   
-    // envoyer la room complète avec scores
-    io.to(roomId).emit("room-update", { ...room })
-  })
+//     // envoyer la room complète avec scores
+//     io.to(roomId).emit("room-update", { ...room })
+//   })
   
 
   // Déconnexion
