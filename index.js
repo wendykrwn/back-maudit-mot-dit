@@ -1,3 +1,4 @@
+require("dotenv").config()
 const express = require("express")
 const http = require("http")
 const { Server } = require("socket.io")
@@ -6,7 +7,7 @@ const cors = require("cors")
 const app = express()
 
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: process.env.FRONT_URL,
   methods: ["GET", "POST"]
 }))
 
@@ -14,7 +15,7 @@ const server = http.createServer(app)
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.FRONT_URL,
     methods: ["GET", "POST"]
   }
 })
@@ -125,7 +126,6 @@ io.on("connection", (socket) => {
     if (room.currentTurnPlayerId !== playerId) return
 
     room.cluesGived[room.cluesGived.length - 1] = {clue: clueGived}
-    console.log(room)
     io.to(roomId).emit("room-update", room)
   })
 
@@ -152,14 +152,12 @@ io.on("connection", (socket) => {
     else {
         //verifier si tout le monde a écrit
         if(Object.keys(room.cluesGived[room.cluesGived.length - 1]).length === room.players.length){
-            console.log("cas tout le monde a deviné ")
             //cas où fin de manche 
             if(room.secretClue === room.cluesGived.length){
                 io.to(roomId).emit("word-not-found")
                 nextTurn(room)
             }
             else {
-                console.log("pas fin de manche")
                 //cas pas fin de manche 
                 room.cluesGived.push({})
             }
@@ -252,6 +250,8 @@ app.get("/room/:id", (req, res) => {
     res.json(room)
   })
 
-server.listen(3001, () => {
-  console.log("Socket server running on http://localhost:3001")
+const PORT = process.env.PORT || 3001
+
+server.listen(PORT, () => {
+    console.log("Server running on port", PORT)
 })
