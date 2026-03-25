@@ -22,6 +22,9 @@ const io = new Server(server, {
 // Stockage simple en mémoire
 const rooms = {}
 
+app.use("/", (req, res)=>{
+    res.send("hello world")
+})
 function updateScore(room, playersIds, points) {
     playersIds.forEach((id) => {
       const player = room.players.find(p => p.playerId === id)
