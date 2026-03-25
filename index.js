@@ -83,6 +83,17 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("game-started")
   })
 
+  socket.on("secret-word-update", ({roomId, playerId, secretWord, secretClue}) => {
+    const room = rooms[roomId]
+    if (!room) return
+    // vérification : seul le joueur courant peut modifier le mot secret
+    if (room.currentTurnPlayerId !== playerId) return
+
+    room.secretWord=secretWord
+    room.secretClue=secretClue
+    io.to(roomId).emit("room-update", room)
+  })
+
   // Passer au joueur suivant
     socket.on("next-turn", ({ roomId, playerId }) => {
     const room = rooms[roomId]
