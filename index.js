@@ -165,7 +165,7 @@ io.on("connection", (socket) => {
             //cas où fin de manche 
             if(room.secretClue === room.cluesGived.length){
                 room.cluesGived=[{}]
-                io.to(roomId).emit("round-finish", {})
+                io.to(roomId).emit("round-finish", {secretWord: room.secretWord})
                 nextTurn(room)
             }
             else {
