@@ -35,6 +35,10 @@ function updateScore(room, playersIds, points) {
     })
 }
 
+function findPseudoByPlayerId(room, playerId){
+    return room.players.find(player=> player.playerId === playerId)?.pseudo
+}
+
 function nextTurn(room) {
     const currentIndex = room.players.findIndex(p => p.playerId === room.currentTurnPlayerId)
     const nextIndex = (currentIndex + 1) % room.players.length
@@ -143,9 +147,14 @@ io.on("connection", (socket) => {
         }
         updateScore(room,playersId,room.cluesGived.length)
         
-        io.to(roomId).emit("word-found", {
-            winner: playersId,
-            points: room.cluesGived.length
+        const winnersPseudo = playersId.map(pId=> findPseudoByPlayerId(room, pId))
+
+        io.to(roomId).emit("round-finish", {
+            winners: winnersPseudo,
+            points: room.cluesGived.length,
+            guesser: findPseudoByPlayerId(room,playerId),
+            secretWord: room.secretWord,
+            secretClues: room.secretClue
         })
         nextTurn(room)
     }
@@ -154,7 +163,7 @@ io.on("connection", (socket) => {
         if(Object.keys(room.cluesGived[room.cluesGived.length - 1]).length === room.players.length){
             //cas où fin de manche 
             if(room.secretClue === room.cluesGived.length){
-                io.to(roomId).emit("word-not-found")
+                io.to(roomId).emit("round-finish")
                 nextTurn(room)
             }
             else {
