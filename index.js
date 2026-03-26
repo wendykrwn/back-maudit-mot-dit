@@ -206,15 +206,21 @@ io.on("connection", (socket) => {
   socket.on("kick-player", ({ roomId, playerId, targetPlayerId }) => {
     const room = rooms[roomId]
     if (!room) return
-    if (room.hostPlayerId !== playerId) return
 
-    room.players = room.players.filter(p => p.playerId !== targetPlayerId)
+    const isSelfAction = playerId === targetPlayerId
+    const isAdmin = room.hostPlayerId === playerId
+
+    if (!isSelfAction && !isAdmin) {
+        return
+    }
 
     // prévenir le joueur kické
     const target = room.players.find(p => p.playerId === targetPlayerId)
     if (target) {
       io.to(target.socketId).emit("kicked")
     }
+
+    room.players = room.players.filter(p => p.playerId !== targetPlayerId)
 
     io.to(roomId).emit("room-update", room)
   })
