@@ -52,6 +52,14 @@ function nextTurn(room) {
     room.clueGived=[]
 }
 
+const normalizeWord = (word) => {
+    return word
+      .toLowerCase() // casse
+      .normalize("NFD") // sépare les accents
+      .replace(/[\u0300-\u036f]/g, "") // supprime les accents
+      .replace(/\s+/g, "") // supprime les espaces
+}
+
 io.on("connection", (socket) => {
   console.log("Connected:", socket.id)
 
@@ -140,7 +148,10 @@ io.on("connection", (socket) => {
 
     room.cluesGived[room.cluesGived.length - 1][playerId] = guess
 
-    if(guess.toLocaleLowerCase() === room.secretWord.toLocaleLowerCase()){
+    const normalizedGuess = normalizeWord(guess)
+    const normalizedSecret = normalizeWord(room.secretWord)
+
+    if(normalizedGuess === normalizedSecret){
         const playersId = [playerId]
         if(room.cluesGived.length === room.secretClue){
             playersId.push(room.currentTurnPlayerId)
