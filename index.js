@@ -149,6 +149,7 @@ io.on("connection", (socket) => {
         
         const winnersPseudo = playersId.map(pId=> findPseudoByPlayerId(room, pId))
 
+        room.cluesGived=[{}]
         io.to(roomId).emit("round-finish", {
             winners: winnersPseudo,
             points: room.cluesGived.length,
@@ -163,6 +164,7 @@ io.on("connection", (socket) => {
         if(Object.keys(room.cluesGived[room.cluesGived.length - 1]).length === room.players.length){
             //cas où fin de manche 
             if(room.secretClue === room.cluesGived.length){
+                room.cluesGived=[{}]
                 io.to(roomId).emit("round-finish")
                 nextTurn(room)
             }
