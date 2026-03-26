@@ -49,7 +49,7 @@ function nextTurn(room) {
 
     room.secretWord=""
     room.secretClue=0
-    room.clueGived=[]
+    room.clueGived=[{}]
 }
 
 const normalizeWord = (word) => {
@@ -160,7 +160,6 @@ io.on("connection", (socket) => {
         
         const winnersPseudo = playersId.map(pId=> findPseudoByPlayerId(room, pId))
 
-        room.cluesGived=[{}]
         io.to(roomId).emit("round-finish", {
             winners: winnersPseudo,
             points: room.cluesGived.length,
