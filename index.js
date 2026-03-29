@@ -139,13 +139,14 @@ io.on("connection", (socket) => {
 
     room.cluesGived[room.cluesGived.length - 1] = {clue: clueGived}
     io.to(roomId).emit("room-update", room)
+    io.to(roomId).emit("word-giving")
   })
 
   socket.on("guessing-word", ({roomId, playerId, guess}) => {
     const room = rooms[roomId]
     if (!room) return
     // if (room.currentTurnPlayerId === playerId) return
-
+    io.to(roomId).emit("word-guess")
     room.cluesGived[room.cluesGived.length - 1][playerId] = guess
 
     const normalizedGuess = normalizeWord(guess)
