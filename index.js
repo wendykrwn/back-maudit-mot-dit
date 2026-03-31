@@ -55,6 +55,8 @@ function nextTurn(room) {
 const normalizeWord = (word) => {
     return word
       .toLowerCase() // casse
+      .replace(/œ/g, "oe")
+      .replace(/æ/g, "ae")
       .normalize("NFD") // sépare les accents
       .replace(/[\u0300-\u036f]/g, "") // supprime les accents
       .replace(/\s+/g, "") // supprime les espaces
@@ -268,6 +270,7 @@ io.on("connection", (socket) => {
   // Déconnexion
   socket.on("disconnect", () => {
     console.log("Disconnected:", socket.id)
+
     // Pour aller plus loin : gérer auto-removal si un joueur quitte
   })
 })
